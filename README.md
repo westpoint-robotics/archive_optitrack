@@ -1,8 +1,6 @@
 # usma_optitrack
 Instructions for configuring a Natural Point Optitrack motion capture system
-===
 Windows Setup
-
 1. Install all dependencies (assuming ROS Indigo).
  * $ `sudo apt-get install ros-indigo-rosbridge-server`
  * $ `sudo apt-get install ros-indigo-mjpeg-server`
@@ -16,7 +14,7 @@ Windows Setup
   * $ `cd ~/catkin_ws/src/usma_remote_interface/scripts`
   * $ `./usma_remote_interface_setup.sh`
 
-=====================
+
 Linux Setup
 
 
