@@ -1,6 +1,6 @@
 # usma_optitrack
 Instructions for configuring a Natural Point Optitrack motion capture system
-=====================
+===
 Windows Setup
 
 1. Install all dependencies (assuming ROS Indigo).
