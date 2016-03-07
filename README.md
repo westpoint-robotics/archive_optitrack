@@ -4,8 +4,12 @@ Instructions for configuring a Natural Point Optitrack motion capture system.
 ### Windows Setup
 1. Launch Motive.
 2. Open default calibration file.
-3. Select rigid bodies.
-4. Ensure broadcast rigid bodies bix is checked
+3. Create rigid bodies (quad always first - Rigid_Body_1)
+4. Open broadcasting side panel
+5. Ensure "Broadcast rigid bodies" is set to True
+6. Set mulitcast interface to latpop IP
+7. Ensure broadcast frame data box is checked
+8. On laptop: echo rostopic /mavros/vision_pose/pose #test position ouput of the quad
 
 ### Linux Setup
 1. Read the mocap_optitrack wiki: http://wiki.ros.org/mocap_optitrack
