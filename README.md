@@ -6,7 +6,7 @@ Instructions for configuring a Natural Point Optitrack motion capture system in 
 2. Launch Motive.
 3. Open the calibration file (specify file here).
 4. Create rigid bodies from selected markers.
-5. Ensure broadcast rigid bodies bix is checked.
+5. Ensure broadcast rigid bodies box is checked.
 
 ## Linux Setup
 1. Read the mocap_optitrack wiki: http://wiki.ros.org/mocap_optitrack
