@@ -1,5 +1,5 @@
 # usma_optitrack
-Instructions for configuring a Natural Point Optitrack motion capture system in ROS. These instructions are based on this wiki: http://wiki.ros.org/mocap\_optitrack. This ROS package's instructions are dated.
+Instructions for configuring a Natural Point Optitrack motion capture system in ROS. These instructions are based on this wiki: http://wiki.ros.org/mocap_optitrack. This ROS package's instructions are dated.
 
 ## Overview
 The goal is to track multiple quadcopters using the OptiTrack motion capture system, then stream that data through a base station (your computer) and to the quadcopters with an onboard cpu running mavros, giving them a local pose estimate and allowing position setting, offboard control, etc. Instructions are compiled from a number of sources along with much trial and error.
