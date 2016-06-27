@@ -67,7 +67,12 @@ continue with other setup ... (cont after)
      ```
      
 
+
 ## Base Station (cont.)
 4. Correct coordinates with a node that subscribes to the topics published by mocap\_node and publishes to <namespace>/mavros/vision\_pose/pose. The correct rotation will have to be found experimentally; it depends on a variety of setup factors. See correct\_vis\_coords.cpp for an example on rotating this and calibrate.launch for an example on figuring out the correct rotation.
 
-Ensure coordinates are correct and connection, power supply, etc. are good. When launching mavros on an offboard CPU, you should see `CON: Got HEARTBEAT, connected. FCU: PX4` if the mavlink connection is good and `FCU: [inav] VISION estimate valid` if the vision pose is published to the correct mavros topic. At this point test that the quad can hover in position control mode. Wear eye safety gear, as a dropped vision pose estimate in position control mode can cause the quad to fly uncontrollably in any direction.
+---
+
+Ensure coordinates are correct and connection, power supply, etc. are good. When launching mavros on an offboard CPU, you should see `CON: Got HEARTBEAT, connected. FCU: PX4` if the mavlink connection is good and `FCU: [inav] VISION estimate valid` if the vision pose is published to the correct mavros topic. At this point test that the quad can hover in position control mode. Wear eye safety gear, as a dropped vision pose estimate in position control mode can cause the quad to fly uncontrollably.
+
+At this point, you should also be able to feed the quads setpoint directions by publishing PoseStamped destinations to `<quadnamespace>/mavros/setpoint\_position/local`. These can be published to multiple quads independently. An example of a code structure that can publish scripts of various maneuvers to multiple quads in parallel is included in mocap\_optitrack/scripts. Example usage of this is included in multiquad\_script\_test. Any new QuadScripts must implement the virtual functions `init()`, `completed()`, and `publish_topic()`, as well as initialize any non-derived variables in the constructor.
