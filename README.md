@@ -76,3 +76,22 @@ continue with other setup ... (cont after)
 Ensure coordinates are correct and connection, power supply, etc. are good. When launching mavros on an offboard CPU, you should see `CON: Got HEARTBEAT, connected. FCU: PX4` if the mavlink connection is good and `FCU: [inav] VISION estimate valid` if the vision pose is published to the correct mavros topic. At this point test that the quad can hover in position control mode. Wear eye safety gear, as a dropped vision pose estimate in position control mode can cause the quad to fly uncontrollably.
 
 At this point, you should also be able to feed the quads setpoint directions by publishing PoseStamped destinations to `<quadnamespace>/mavros/setpoint_position/local`. These can be published to multiple quads independently. An example of a code structure that can publish scripts of various maneuvers to multiple quads in parallel is included in mocap\_optitrack/scripts. Example usage of this is included in multiquad\_script\_test. Any new QuadScripts must implement the virtual functions `init()`, `completed()`, and `publish_topic()`, as well as initialize any non-derived variables in the constructor.
+
+---
+
+## Ad Hoc Network Setup
+The ROS network can also be set up using an ad hoc network to avoid latency or other interference from other traffic on the network.
+
+1. Configure an ad hoc network as shown here: https://wiki.debian.org/WiFi/AdHoc. You may have to use a serial connection.
+2. Add permanent arp entries for each quad.
+   - add IP to mac address mappings for each other device on the network in /etc/ethers (may have to create this file).
+     You can find the mac addresses with `ifconfig <devicename>`.
+
+     ```
+     192.168.1.2     qu:ad:1m:ac:ad:dr
+     192.168.1.3     qu:ad:2m:ac:ad:dr
+     ```
+     
+   - Run `arp -f` as root to load these addresses now.
+   - Configure these to load on boot for each odroid: add `arp -f` just before the `exit 0` in /etc/rc.local
+   - Try rebooting each offboard computer, you should be able to ping/ssh to each quad at this point.
