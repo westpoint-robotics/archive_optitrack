@@ -44,9 +44,8 @@ continue with other setup ... (cont after)
      <group ns="$(arg ns)">
        <arg name="fcu_url" default="serial:///dev/ttyUSB0:921600" />
        <arg name="gcs_url" default="udp://@" />
-		 <arg name="tgt_system" default="2" />
+       <arg name="tgt_system" default="2" />
 
-       
        <!-- rest of launch file -->
      
      </group>
