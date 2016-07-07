@@ -28,22 +28,26 @@ continue with other setup ... (cont after)
 ## Quad Setup
 1. Install qgroundcontrol
 2. Connect quad (and run calibration/setup if needed), then set parameters for using vision pose here: http://dev.px4.io/external-position.html
-3. Adjust INAV weights and other parameters as needed.
-4. Configure flight modes. Will need access to a manual mode or quad will not arm, offboard mode, and preferably position control mode.
+3. If flying multiple quads, you will need to assign them unique MAVLINK_SYSID parameters.
+4. Adjust INAV weights and other parameters as needed.
+5. Configure flight modes. Will need access to a manual mode or quad will not arm, offboard mode, and preferably position control mode.
 
 ## Offboard CPU Setup (ODROID or RPI assumed)
 1. Get CPU set up with a wireless connection on same network as base station.
    - http://odroid.com/dokuwiki/doku.php
    - https://www.raspberrypi.org/help/noobs-setup/
 2. Install mavros and mavros_extras: `sudo apt-get install ros-<yourdistro>-mavros` `sudo apt-get install mavros-<yourdistro>-mavros-extras`
-3. Change default fcu\_url to match correct port and baud rate. If using multiple quads, each quad's copy of mavros MUST run under a unique namespace, or both quads will accept both sets of instructions. Copy and change mavros\_extras/launch/px4\_image.launch to launch everything under a unique namespace. For example:
+3. Change default fcu\_url to match correct port and baud rate. If using multiple quads, each quad's copy of mavros MUST run under a unique namespace, or both quads will accept both sets of instructions, and both quads must run with unique system IDs (MAVLINK\_SYSID set in qgroundcontrol). Copy and change mavros\_extras/launch/px4\_image.launch to launch everything under a unique namespace. For example:
    ```xml
    <launch>
      <arg name="ns" default="quad00" />
      <group ns="$(arg ns)">
        <arg name="fcu_url" default="serial:///dev/ttyUSB0:921600" />
+       <arg name="gcs_url" default="udp://@" />
+		 <arg name="tgt_system" default="2" />
+
        
-       <!-- rest of cody body here -->
+       <!-- rest of launch file -->
      
      </group>
    </launch>
