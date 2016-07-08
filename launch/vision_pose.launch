@@ -49,4 +49,7 @@
         <node pkg="mocap_optitrack" type="correct_vis_coords_test"
           name="correct_quad_coords_test" ns="$(arg ns2)"
           args="/uncorrected_pose4 mavros/vision_pose/pose" />
+
+        <!-- <node pkg="mocap_optitrack" type="boundary_check"
+          name="boundary_check" /> -->
 </launch>

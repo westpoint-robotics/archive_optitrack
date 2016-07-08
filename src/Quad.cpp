@@ -6,68 +6,45 @@
 
 // Constructor and Destructor
 Quad::Quad(std::string ns_in) {
-  // This means this is not a real quad and most data must be fabricated
-  if (ns_in[0] == '_') {
-    data.node = ros::NodeHandle("fabr" + ns_in);
-    quad_type = FABR_QUAD;
-    if (ns_in == "_wand_proj") {
-      quad_type = WAND_PROJECTION;
-    }
-    ROS_INFO("fake quad created");
-    wand_pose_sub = data.node.subscribe("/wand_pose",
-                                        FRAMES_PER_SEC,
-                                        &Quad::wand_pose_callback,
-                                        this);
-    plat_pose_sub = data.node.subscribe("/object_pose",
-                                        FRAMES_PER_SEC,
-                                        &Quad::plat_pose_callback,
-                                        this);
-    ball_pose_sub = data.node.subscribe("/ball_pose",
-                                        FRAMES_PER_SEC,
-                                        &Quad::ball_pose_callback,
-                                        this);
+  quad_type = REAL_QUAD;
+  data.node = ros::NodeHandle(ns_in);
+  // Initialize vel queues to correct size, data cycled through in pose subs
+  geometry_msgs::PoseStamped init_pose;
+  for (int i = 0; i < FRAMES_PER_SEC / VEL_T_DENOM; ++i) {
+    past_wand_pose.push(init_pose);
+    past_plat_pose.push(init_pose);
+    past_ball_pose.push(init_pose);
   }
-  else {
-    quad_type = 0;
-    data.node = ros::NodeHandle(ns_in);
-    // Initialize vel queues to correct size, data cycled through in pose subs
-    geometry_msgs::PoseStamped init_pose;
-    for (int i = 0; i < FRAMES_PER_SEC / VEL_T_DENOM; ++i) {
-      past_wand_pose.push(init_pose);
-      past_plat_pose.push(init_pose);
-      past_ball_pose.push(init_pose);
-    }
 
-    // Init subs
-    state_sub = data.node.subscribe("mavros/state",
-                                    FRAMES_PER_SEC,
-                                    &Quad::state_callback,
-                                    this);
-    local_pose_sub = data.node.subscribe("mavros/local_position/pose",
-                                         FRAMES_PER_SEC,
-                                         &Quad::local_pose_callback,
-                                         this);
-    wand_pose_sub = data.node.subscribe("/wand_pose",
-                                        FRAMES_PER_SEC,
-                                        &Quad::wand_pose_callback,
-                                        this);
-    plat_pose_sub = data.node.subscribe("/object_pose",
-                                        FRAMES_PER_SEC,
-                                        &Quad::plat_pose_callback,
-                                        this);
-    ball_pose_sub = data.node.subscribe("/ball_pose",
-                                        FRAMES_PER_SEC,
-                                        &Quad::ball_pose_callback,
-                                        this);
-    local_vel_sub = data.node.subscribe("mavros/local_position/velocity",
-                                        FRAMES_PER_SEC,
-                                        &Quad::local_vel_callback,
-                                        this);
+  // Init subs
+  state_sub = data.node.subscribe("mavros/state",
+                                  FRAMES_PER_SEC,
+                                  &Quad::state_callback,
+                                  this);
+  local_pose_sub = data.node.subscribe("mavros/local_position/pose",
+                                       FRAMES_PER_SEC,
+                                       &Quad::local_pose_callback,
+                                       this);
+  wand_pose_sub = data.node.subscribe("/wand_pose",
+                                      FRAMES_PER_SEC,
+                                      &Quad::wand_pose_callback,
+                                      this);
+  plat_pose_sub = data.node.subscribe("/object_pose",
+                                      FRAMES_PER_SEC,
+                                      &Quad::plat_pose_callback,
+                                      this);
+  ball_pose_sub = data.node.subscribe("/ball_pose",
+                                      FRAMES_PER_SEC,
+                                      &Quad::ball_pose_callback,
+                                      this);
+  local_vel_sub = data.node.subscribe("mavros/local_position/velocity",
+                                      FRAMES_PER_SEC,
+                                      &Quad::local_vel_callback,
+                                      this);
 
-    // Init disarming client
-    disarm_client = data.node.serviceClient<mavros_msgs::CommandBool>
-                                           ("mavros/cmd/arming");
-  }
+  // Init disarming client
+  disarm_client = data.node.serviceClient<mavros_msgs::CommandBool>
+                                         ("mavros/cmd/arming");
 }
 
 Quad::~Quad() {
@@ -79,7 +56,6 @@ Quad::~Quad() {
 }
 
 void Quad::run() {
-
   check_for_disarm_cmd();
 
   if (!script_queue.empty()) {
@@ -161,23 +137,6 @@ void Quad::wand_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
   past_wand_pose.push(data.wand_pose);
   past_wand_pose.pop();
   set_wand_vel();
-
-  if (quad_type == WAND_PROJECTION) {
-    // // Project out from end of wand
-    // tf::Quaternion q;
-    // tf::quaternionMsgToTF(data.wand_pose.pose.orientation, q);
-    // double roll, pitch, yaw;
-    // tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
-    //
-    //
-    // ROS_INFO(" ");
-    // ROS_INFO("roll: %.2f", roll);
-    // ROS_INFO("pitch: %.2f", pitch);
-    // ROS_INFO("yaw: %.2f", yaw);
-    data.local_pose.pose.position.x = -1;
-    data.local_pose.pose.position.y = 0;
-    data.local_pose.pose.position.z = 0.5;
-  }
 }
 
 void Quad::plat_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
@@ -205,6 +164,7 @@ void Quad::local_vel_callback(const geometry_msgs::TwistStamped::ConstPtr& msg) 
 
 // Vel setters
 void Quad::set_wand_vel() {
+  int size = past_wand_pose.size();
   // Angular velocity fields are all zero and should not be used
   data.wand_vel.header = past_wand_pose.back().header;
   double dx = past_wand_pose.back().pose.position.x -
@@ -213,10 +173,9 @@ void Quad::set_wand_vel() {
               past_wand_pose.front().pose.position.y;
   double dz = past_wand_pose.back().pose.position.z -
               past_wand_pose.front().pose.position.z;
-  double dt = 1 / VEL_T_DENOM;
-  data.wand_vel.twist.linear.x = dx / dt;
-  data.wand_vel.twist.linear.y = dy / dt;
-  data.wand_vel.twist.linear.z = dz / dt;
+  data.wand_vel.twist.linear.x = dx * VEL_T_DENOM;
+  data.wand_vel.twist.linear.y = dy * VEL_T_DENOM;
+  data.wand_vel.twist.linear.z = dz * VEL_T_DENOM;
 }
 
 void Quad::set_plat_vel() {
@@ -227,32 +186,166 @@ void Quad::set_plat_vel() {
               past_plat_pose.front().pose.position.y;
   double dz = past_plat_pose.back().pose.position.z -
               past_plat_pose.front().pose.position.z;
-  double dt = 1 / VEL_T_DENOM;
-  data.plat_vel.twist.linear.x = dx / dt;
-  data.plat_vel.twist.linear.y = dy / dt;
-  data.plat_vel.twist.linear.z = dz / dt;
+  data.plat_vel.twist.linear.x = dx * VEL_T_DENOM;
+  data.plat_vel.twist.linear.y = dy * VEL_T_DENOM;
+  data.plat_vel.twist.linear.z = dz * VEL_T_DENOM;
 }
 
 void Quad::set_ball_vel() {
   data.ball_vel.header = past_ball_pose.back().header;
   double dx = past_ball_pose.back().pose.position.x -
-              past_ball_pose.front().pose.position.x;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        past_ball_pose.front().pose.position.x;
   double dy = past_ball_pose.back().pose.position.y -
               past_ball_pose.front().pose.position.y;
   double dz = past_ball_pose.back().pose.position.z -
               past_ball_pose.front().pose.position.z;
-  double dt = 1 / VEL_T_DENOM;
-  data.ball_vel.twist.linear.x = dx / dt;
-  data.ball_vel.twist.linear.y = dy / dt;
-  data.ball_vel.twist.linear.z = dz / dt;
+  data.ball_vel.twist.linear.x = dx * VEL_T_DENOM;
+  data.ball_vel.twist.linear.y = dy * VEL_T_DENOM;
+  data.ball_vel.twist.linear.z = dz * VEL_T_DENOM;
 }
 
 void Quad::check_for_disarm_cmd() {
-  if (data.wand_vel.twist.linear.z < -3.5 &&
-      std::abs(data.wand_pose.pose.orientation.y) > 0.9) {
+  if (data.wand_vel.twist.linear.z < -2.0 &&
+      std::abs(data.wand_pose.pose.orientation.y) > 0.9 &&
+      quad_type == REAL_QUAD) {
+    ROS_INFO("disarmed by wand");
     disarm();
   }
 }
+
+// FAKE QUAD - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+FakeQuad::FakeQuad(int quad_type_in) : d_angle(0), activated(false) {
+  data.node = ros::NodeHandle("fake");
+  quad_type = quad_type_in;
+  if (quad_type == WAND_PROJECTION) {
+    data.local_pose.pose.position.x = -1;
+    data.local_pose.pose.position.y = 0;
+    data.local_pose.pose.position.z = 0.5;
+  }
+  if (quad_type == WAND_MOVABLE) {
+    data.local_pose.pose.position.x = -1;
+    data.local_pose.pose.position.y = 0;
+    data.local_pose.pose.position.z = 0.5;
+  }
+  if (quad_type == CLOCKWISE_CIRCLE) {
+    d_angle = 270;
+    data.local_pose.pose.position.x = -1;
+    data.local_pose.pose.position.y = 0;
+    data.local_pose.pose.position.z = 0.5;
+  }
+  ROS_INFO("FakeQuad created");
+  wand_pose_sub = data.node.subscribe("/wand_pose",
+                                      FRAMES_PER_SEC,
+                                      &FakeQuad::wand_pose_callback,
+                                      this);
+  plat_pose_sub = data.node.subscribe("/object_pose",
+                                      FRAMES_PER_SEC,
+                                      &FakeQuad::plat_pose_callback,
+                                      this);
+  ball_pose_sub = data.node.subscribe("/ball_pose",
+                                      FRAMES_PER_SEC,
+                                      &FakeQuad::ball_pose_callback,
+                                      this);
+}
+
+void FakeQuad::set_position(double x, double y, double z) {
+  data.local_pose.pose.position.x = x;
+  data.local_pose.pose.position.y = y;
+  data.local_pose.pose.position.z = z;
+}
+
+
+void FakeQuad::wand_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
+  data.wand_pose.header = msg->header;
+  data.wand_pose.pose = msg->pose;
+
+  past_wand_pose.push(data.wand_pose);
+  past_wand_pose.pop();
+  set_wand_vel();
+}
+
+void FakeQuad::plat_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
+  data.plat_pose.header = msg->header;
+  data.plat_pose.pose = msg->pose;
+
+  past_plat_pose.push(data.plat_pose);
+  past_plat_pose.pop();
+  set_plat_vel();
+}
+
+void FakeQuad::ball_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
+  data.ball_pose.header = msg->header;
+  data.ball_pose.pose = msg->pose;
+
+  past_ball_pose.push(data.ball_pose);
+  past_ball_pose.pop();
+  set_ball_vel();
+}
+
+
+void FakeQuad::run() {
+  switch (quad_type) {
+
+    case WAND_PROJECTION: {
+      tf::Quaternion q;
+      tf::quaternionMsgToTF(data.wand_pose.pose.orientation, q);
+      double roll, pitch, yaw;
+      tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
+
+      if (std::abs(roll) > 2.8 && data.wand_pose.pose.position.z > 0.5) {
+        double proj_dist = 0.8;
+        data.local_pose.pose.position.x =
+          (data.wand_pose.pose.position.x - proj_dist * cos(yaw));
+        data.local_pose.pose.position.y =
+          (data.wand_pose.pose.position.y - proj_dist * sin(yaw));
+        data.local_pose.pose.position.z =
+          (data.wand_pose.pose.position.z + proj_dist * sin(pitch));
+      }
+      break;
+    }
+
+    case WAND_MOVABLE: {
+      if (data.wand_pose.pose.position.z > 0.8) {
+        if (std::abs(data.wand_pose.pose.orientation.y) < 0.1 &&
+            data.local_pose.pose.position.x <= 1.3) {
+          // Increase x
+          data.local_pose.pose.position.x += 0.5 / FRAMES_PER_SEC;
+        }
+        else if (std::abs(data.wand_pose.pose.orientation.y) > 0.9 &&
+                 data.local_pose.pose.position.x >= -1.5) {
+          // Decrease x
+          data.local_pose.pose.position.x -= 0.5 / FRAMES_PER_SEC;
+        }
+      }
+      break;
+    }
+
+    case CLOCKWISE_CIRCLE: {
+      if (!activated) {
+        bool rot_check = std::abs(data.wand_pose.pose.orientation.y) < 0.1;
+        bool z_check = data.wand_pose.pose.position.z > 0.8;
+        activated = rot_check && z_check;
+      }
+      else {
+        double r = 1.0;
+        double r_angle = M_PI * d_angle / 180;
+        data.local_pose.pose.position.x = r * cos(r_angle);
+        data.local_pose.pose.position.y = r * sin(r_angle);
+
+        // Degrees per second
+        d_angle += 45 / FRAMES_PER_SEC;
+      }
+      break;
+    }
+
+    default: {
+      ROS_WARN_ONCE("FakeQuad type %d not found...", quad_type);
+      break;
+    }
+  }
+  ros::spinOnce();
+}
+
 
 // FORMATION - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Formation::Formation() : initialized(false) {}
@@ -261,6 +354,7 @@ void Formation::run() {
   for (int i = 0; i < quad_list.size(); ++i) {
     quad_list.at(i)->run();
   }
+
   if (!initialized) {
     sleep(1.0);
     initialized = true;
@@ -292,10 +386,10 @@ void Formation::check_for_collisions() {
       for (int j = i + 1; j < quad_list.size(); ++j) {
         if (pose_dist_check(quad_list.at(i)->get_local_pose().pose,
                             quad_list.at(j)->get_local_pose().pose,
-                            0.7, 1.0)) {
+                            0.6, 1.0)) {
           quad_list.at(i)->disarm();
           quad_list.at(j)->disarm();
-          // ROS_INFO("Too close");
+          ROS_INFO("Too close");
         }
       }
 
@@ -310,7 +404,7 @@ void Formation::check_for_collisions() {
 }
 
 bool insideBoundaries(geometry_msgs::Pose pose) {
-  return pose.position.x > -2.05 && pose.position.x < 0.00 &&
-         pose.position.y > -1.30 && pose.position.y < 1.40 &&
-         pose.position.z < 2.5;
+  return pose.position.x > -2.05 && pose.position.x < 2.00 &&
+         pose.position.y > -1.60 && pose.position.y < 1.60 &&
+         pose.position.z < 2.00;
 }

@@ -19,9 +19,11 @@
 #include <memory>
 
 namespace {
-  const static int REAL_QUAD = 0;
-  const static int FABR_QUAD = 1;
-  const static int WAND_PROJECTION = 5;
+  const int REAL_QUAD = 0;
+  const int FABR_QUAD = 1;
+  const int WAND_PROJECTION = 5;
+  const int WAND_MOVABLE = 6;
+  const int CLOCKWISE_CIRCLE = 10;
 }
 
 // Forward declare to prevent circular dependencies
@@ -68,6 +70,8 @@ struct QuadData {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 class Quad {
 public:
+  Quad() {}
+
   // Initializes node with ns_in and sets up all fields to be filled
   Quad(std::string ns_in);
 
@@ -76,7 +80,7 @@ public:
 
   // Runs one frame of scripts in script_queue, and controls script selection,
   // deleting and removing scripts when they are completed
-  void run();
+  virtual void run();
 
   // Getters for access to data by other quads, internal
   // script publishers should be passed data and use that
@@ -103,7 +107,7 @@ public:
   // Disarms this quad
   void disarm();
 
-private:
+protected:
   std::queue<QuadScript*> script_queue;
 
   // Holds all necessary quad data for script publishers
@@ -125,9 +129,9 @@ private:
 
   void state_callback(const mavros_msgs::State::ConstPtr& msg);
   void local_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg);
-  void wand_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg);
-  void plat_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg);
-  void ball_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg);
+  virtual void wand_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg);
+  virtual void plat_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg);
+  virtual void ball_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg);
   void local_vel_callback(const geometry_msgs::TwistStamped::ConstPtr& msg);
 
   // Velocity functions to calculate and fill out quad data fields
@@ -142,6 +146,26 @@ private:
 
   // Checks for wand (or other) to trigger disarm
   void check_for_disarm_cmd();
+};
+
+// FAKEQUAD - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+class FakeQuad : public Quad {
+public:
+  FakeQuad(int quad_type_in);
+
+  void set_position(double x, double y, double z);
+
+protected:
+  bool activated;
+  double d_angle;
+
+  virtual void wand_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg);
+  virtual void plat_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg);
+  virtual void ball_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg);
+
+  virtual void run();
 };
 
 // FORMATION - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

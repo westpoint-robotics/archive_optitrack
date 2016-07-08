@@ -31,3 +31,6 @@ target_link_libraries(script_test ${catkin_LIBRARIES})
 
 add_executable(multiquad_script_test src/multiquad_script_test.cpp src/Quad.cpp src/QuadScripts.cpp)
 target_link_libraries(multiquad_script_test ${catkin_LIBRARIES})
+
+add_executable(boundary_check src/boundary_check.cpp src/Quad.cpp src/QuadScripts.cpp)
+target_link_libraries(boundary_check ${catkin_LIBRARIES})

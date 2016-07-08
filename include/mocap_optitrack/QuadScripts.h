@@ -10,6 +10,7 @@
 #include <sensor_msgs/Joy.h>
 
 #include "mocap_optitrack/constants_config.h"
+#include <iostream>
 #include <vector>
 #include <queue>
 #include <string>
@@ -134,12 +135,41 @@ public:
 protected:
   bool catching;
   geometry_msgs::PoseStamped dest_pose;
+
+  int timer;
+  bool dipping;
+  int dip_timer;
+
+  double last_z;
+  double vz;
+  bool hitPeak;
+};
+
+class Drift : public QuadScript {
+public:
+  Drift();
+
+  virtual void init();
+  virtual bool completed() const;
+  virtual void publish_topic();
+
+protected:
+  geometry_msgs::PoseStamped locked_pose;
+  geometry_msgs::PoseStamped dest_pose;
+
+  bool init_locked;
+  bool locked;
 };
 
 // Helper functions - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool pose_dist_check(geometry_msgs::Pose pose1,
-                            geometry_msgs::Pose pose2,
-                            double max_dist, double max_rot);
+                     geometry_msgs::Pose pose2,
+                     double max_dist, double max_rot);
+
+bool pose_xy_check(geometry_msgs::Pose pose1,
+                   geometry_msgs::Pose pose2,
+                   double max_dist);
+
 
 #endif

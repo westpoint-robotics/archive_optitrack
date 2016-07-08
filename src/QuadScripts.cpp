@@ -37,13 +37,17 @@ bool Takeoff::completed() const {
   return data->local_pose.pose.position.z > tkoff_height;
 }
 
-// TODO fix this it sucks
 void Takeoff::publish_topic() {
   ROS_INFO_ONCE("Starting Takeoff...");
   if (!locked) {
     dest_pose = data->local_pose;
-    dest_pose.pose.position.z = 2.0 * tkoff_height;
     locked = data->state.armed && data->state.mode == "OFFBOARD";
+    if (locked) {
+      ROS_INFO("takeoff position locked!");
+    }
+  }
+  else {
+    dest_pose.pose.position.z += (0.15) / FRAMES_PER_SEC;
   }
   pub.publish(dest_pose);
 }
@@ -76,11 +80,6 @@ bool SetPose::completed() const {
   double rot = 0.1;
 
   bool wand_check = needsWandCheck ? standardWandCheckPasses() : 1;
-  ROS_INFO(wand_check ? "wand pass" : "wand fail");
-  ROS_INFO(pose_dist_check(dest_pose.pose,
-                                       data->local_pose.pose,
-                                       dist, rot) ?
-            "dist pass" : "dist fail");
   return wand_check && pose_dist_check(dest_pose.pose,
                                        data->local_pose.pose,
                                        dist, rot);
@@ -118,8 +117,6 @@ bool FollowOffset::completed() const {
   bool dist_check = pose_dist_check(dest_pose.pose,
                                     data->local_pose.pose,
                                     dist, rot);
-  // ROS_INFO(wand_check ? "wand pass" : "wand fail");
-  // ROS_INFO(dist_check ? "dist pass" : "dist fail");
   return wand_check && dist_check;
 }
 
@@ -152,7 +149,8 @@ void FollowOffset::publish_topic() {
 
 // CatchBall - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // TODO this is placeholder
-CatchBall::CatchBall() : catching(false) {}
+CatchBall::CatchBall() : catching(false), last_z(0), hitPeak(false), timer(0),
+  dip_timer(0), dipping(false) {}
 
 void CatchBall::init() {
   // TODO This is placeholder
@@ -173,58 +171,178 @@ void CatchBall::publish_topic() {
   ROS_INFO_ONCE("CatchBall started");
   double catch_z = 0.5;
 
+  // Calculate remaining t in ball flight
   double x = data->ball_pose.pose.position.x;
   double y = data->ball_pose.pose.position.y;
   double z = data->ball_pose.pose.position.z;
 
   double a = -9.8;
-
   double vx = data->ball_vel.twist.linear.x;
   double vy = data->ball_vel.twist.linear.y;
-  double vz = data->ball_vel.twist.linear.z;
+  if (!catching) {
+    vz = data->ball_vel.twist.linear.z;
+  }
+  else {
+    // Much faster instantaneous vz calculation needed
+    vz = (z - last_z) * FRAMES_PER_SEC;
+  }
 
+  // Calculate t until ball reaches catch_z
   double t_plus = (-vz + sqrt(vz*vz - 2*a*(z - catch_z))) / a;
   double t_minus = (-vz - sqrt(vz*vz - 2*a*(z - catch_z))) / a;
   double t = t_plus > t_minus ? t_plus : t_minus;
 
-  // Overcompensate for bad/delayed velocity calculations
+  // Project to predict ending coordinates
+  // TODO figure out why the 4* is needed
   double x_proj = x + 4 * (vx * t);
   double y_proj = y + 4 * (vy * t);
 
+  // See if ball has been thrown yet
   if (!catching) {
     dest_pose.header = data->local_pose.header;
-    dest_pose.pose = data->local_pose.pose;
+    dest_pose.pose.position.x = -0;
+    dest_pose.pose.position.y = 0;
     dest_pose.pose.position.z = 0.5;
-    catching = vz > 0.3 && z > 1;
+    dest_pose.pose.orientation.w = -1;
+
+    if (catching = vz > 0.3 && z > 1) {
+      ROS_INFO("catching!");
+    }
   }
 
+  // See if ball has reached peak of trajectory
+  if (!hitPeak) {
+    hitPeak = last_z > z;
+  }
+  last_z = z;
 
-  // Overcompensate for speed
+  // Start catch timer
+  if (catching) {
+    ++timer;
+  }
+
+  // Begin catching movement
   geometry_msgs::PoseStamped comp_pose = dest_pose;
+  if (timer > FRAMES_PER_SEC / 8) {
 
-  if (z > catch_z + 0.1 && catching) {
-    ROS_INFO_ONCE("catching!");
-    dest_pose.pose.position.x = x_proj;
-    dest_pose.pose.position.y = y_proj;
-    dest_pose.pose.position.z = catch_z;
-    double dx = dest_pose.pose.position.x - data->local_pose.pose.position.x;
-    double dy = dest_pose.pose.position.y - data->local_pose.pose.position.y;
-    comp_pose.pose.position.x += 2 * dx;
-    comp_pose.pose.position.y += 2 * dy;
+    // Move to projected ball coordinates at catch height
+    if (!dipping) {
+      dest_pose.pose.position.x = x_proj;
+      dest_pose.pose.position.y = y_proj;
+      dest_pose.pose.position.z = catch_z;
+      ROS_INFO("Predicted coords: %.2f, %.2f in %.2fs", x_proj, y_proj, t);
 
+      // Overcompensate for more aggressive maneuvering
+      double dx = dest_pose.pose.position.x - data->local_pose.pose.position.x;
+      double dy = dest_pose.pose.position.y - data->local_pose.pose.position.y;
+      comp_pose.pose.position.x += 6 * dx;
+      comp_pose.pose.position.y += 6 * dy;
+
+      // See if about to catch
+      if (dipping = z < catch_z + 0.2) {
+        ROS_INFO("timer ref: %d", timer);
+        ROS_INFO("Actual coords: %.2f, %.2f", x, y);
+        ROS_INFO("STARTING DIP");
+      }
+    }
+
+    // Dip to softly catch ball
+    else {
+      ++dip_timer;
+
+      // Move along trajectory toward a predicted spot underground
+      double dip_z = -1.0;
+      double t_plus_dip = (-vz + sqrt(vz*vz - 2*a*(z - dip_z))) / a;
+      double t_minus_dip = (-vz - sqrt(vz*vz - 2*a*(z - dip_z))) / a;
+      double t_dip = t_plus_dip > t_minus_dip ? t_plus_dip : t_minus_dip;
+
+      comp_pose.pose.position.x = x + 4 * (vx * t_dip);
+      comp_pose.pose.position.y = y + 4 * (vy * t_dip);
+      comp_pose.pose.position.z = dip_z;
+
+      ROS_INFO("Dip coords: %.2f, %.2f, -1.0", comp_pose.pose.position.x, comp_pose.pose.position.y);
+
+      // Reset everything when dip is completed
+      if (dip_timer >= FRAMES_PER_SEC / 4) {
+        ROS_INFO("timer ref: %d", timer);
+        ROS_INFO("ended dip");
+        ROS_INFO("RESETTING...");
+
+        dipping = hitPeak = catching = false;
+        dip_timer = timer = 0;
+      }
+    }
   }
 
   pub.publish(comp_pose);
 }
 
+// Place ATTEMPT 2 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Drift::Drift() : locked(false), init_locked(false) {}
+
+void Drift::init() {
+  // dest_pose.pose.position.x = -1.0;
+  dest_pose.header = data->local_pose.header;
+  dest_pose.pose.position.z = 0.5;
+  dest_pose.pose.orientation.w = -1;
+  pub = data->node.advertise<geometry_msgs::PoseStamped>
+                            ("mavros/setpoint_position/local",
+                             FRAMES_PER_SEC);
+}
+
+bool Drift::completed() const {
+  // TODO this is placeholder
+  return false;
+}
+
+void Drift::publish_topic() {
+  ROS_INFO_ONCE("Drift started");
+
+  // Get some params
+  double z_vel_offset = 0.01;
+  double vx = data->local_vel.twist.linear.x;
+  double vy = data->local_vel.twist.linear.y;
+  double vz = data->local_vel.twist.linear.z - z_vel_offset;
 
 
+  if (!locked) {
+    locked_pose.pose = data->local_pose.pose;
+
+    // Determine if should lock
+    if (locked = (std::abs(vx) < 0.04 &&
+                  std::abs(vy) < 0.04 &&
+                  std::abs(vz) < 0.04) || !init_locked) {
+      ROS_INFO("Locking new position at %.2f, %.2f, %.2f \n", locked_pose.pose.position.x,
+                                                              locked_pose.pose.position.y,
+                                                              locked_pose.pose.position.z);
+      if (!init_locked) {
+        ROS_INFO("making initial position lock");
+        init_locked = true;
+      }
+    }
+    else {
+      // Otherwise set drift conditions
+      locked_pose.pose.position.x += vx;
+      locked_pose.pose.position.y += vy;
+      locked_pose.pose.position.z += vz - (1.0 / FRAMES_PER_SEC);
+    }
+  }
+
+  // Unlock if pulled far enough
+  if (locked && !pose_dist_check(locked_pose.pose, data->local_pose.pose, 0.17, 1)) {
+    ROS_INFO("UNLOCKED");
+    locked = false;
+  }
+
+  locked_pose.header.stamp = ros::Time::now();
+  pub.publish(locked_pose);
+}
 
 // HELPER FUNCTIONS - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool pose_dist_check(geometry_msgs::Pose pose1,
-                            geometry_msgs::Pose pose2,
-                            double max_dist, double max_rot) {
+                     geometry_msgs::Pose pose2,
+                     double max_dist, double max_rot) {
   double dx = pose1.position.x - pose2.position.x;
   double dy = pose1.position.y - pose2.position.y;
   double dz = pose1.position.z - pose2.position.z;
@@ -242,4 +360,12 @@ bool pose_dist_check(geometry_msgs::Pose pose1,
   bool rot_check = std::sqrt(dox*dox + doy*doy + doz*doz + dow*dow) < max_rot;
 
   return dist_check;
+}
+
+bool pose_xy_check(geometry_msgs::Pose pose1,
+                   geometry_msgs::Pose pose2,
+                   double max_dist) {
+  double dx = pose1.position.x - pose2.position.x;
+  double dy = pose1.position.y - pose2.position.y;
+  return std::sqrt(dx*dx + dy*dy) < max_dist;
 }
