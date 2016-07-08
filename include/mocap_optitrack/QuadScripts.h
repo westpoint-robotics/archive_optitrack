@@ -36,30 +36,34 @@ public:
 
   void give_data(QuadData* data_in);
 
-  // Initializes publisher with correct type and topic
+  // MUST IMPLEMENT
+  // Initializes publisher with correct type and topic name, and sets initial data
+  // for any new member variables or Poses.
   virtual void init() = 0;
 
-  // Returns true when terminating conditions for this script are met, possibly
-  // including wand checks.
+  // MUST IMPLEMENT
+  // Returns whether or not the script is finished, based on conditions of the
+  // parent Quad's data and possibly a wand check.
   virtual bool completed() const = 0;
 
-  // Calculates and publishes specific script topic
+  // MUST IMPLEMENT
+  // Calculates the needed setpoint instructions and publishes it.
   virtual void publish_topic() = 0;
 
   // Sets whether or not this script needs a wand check
   void set_needsWandCheck(bool input);
 
 protected:
-  // Generic publisher, type and topic published changes per script
+  // Generic publisher, type and topic published may change per script
   ros::Publisher pub;
 
-  // Associated quad's data struct
+  // Pointer to parent Quad's data struct
   QuadData* data;
 
-  // True when wand is rotated up with z > 0.8m
+  // General use wand check. Passes when wand rotated up above a threshhold z.
   bool standardWandCheckPasses() const;
 
-  // Whether or not needs to wait for stdwandCheck to pass, default false
+  // Whether or not needs to wait for stdwandCheck to pass, default false.
   bool needsWandCheck;
 };
 

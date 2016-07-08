@@ -38,6 +38,8 @@ class Quad;
 
 // QuadData - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// A data struct belonging to a Quad that holds all data that needs to be sent
+// to QuadScripts, as well as the node to publish with.
 struct QuadData {
   // node packaged with data for use of publishers in
   // script functions
@@ -60,8 +62,8 @@ struct QuadData {
   geometry_msgs::TwistStamped plat_vel;
   geometry_msgs::TwistStamped ball_vel;
 
-  // Vector of other quads in the script setting. Only has
-  // public access
+  // Vector of other quads in parent Quad's Formation. Only has public access to
+  // other quads.
   std::vector<const Quad*> other_quads;
 };
 
@@ -99,7 +101,7 @@ public:
   // Adds other_quad to the list of quads this quad can track.
   void add_quad(Quad* other_quad);
 
-  // Adds script to this quad's script queue
+  // Adds script to this quad's script queue and passes it the pointer to data.
   // QUAD HAS OWNERSHIP OF QUADSCRIPTS IN SCRIPT_QUEUE
   // USAGE: quad_obj.add_script(new QuadScriptDerived(args));
   void add_script(QuadScript* script_in);
@@ -108,6 +110,8 @@ public:
   void disarm();
 
 protected:
+
+  // The queue of scripts for this quad to run.
   std::queue<QuadScript*> script_queue;
 
   // Holds all necessary quad data for script publishers
@@ -170,6 +174,7 @@ protected:
 
 // FORMATION - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Formations hold Quads and make formation movements/control easier.
 class Formation {
 public:
   Formation();
