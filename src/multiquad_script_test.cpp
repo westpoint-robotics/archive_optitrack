@@ -22,7 +22,7 @@ int main(int argc, char** argv) {
   // quad1.add_script(new SetPose(-1, -0.7, 0.5,   0, 0, 0, -1));
   // quad1.back()->set_needsWandCheck(true);
 
-  quad2.add_script(new SetPose(0, 0, 0.5,   0, 0, 0, -1));
+  quad2.add_script(new SetPose(-1.5, 0, 0.5,   0, 0, 0, -1));
   quad2.back()->set_needsWandCheck(true);
   //
   // quad1.add_script(new FollowOffset(0.6, 0, 0, 0));
@@ -33,7 +33,9 @@ int main(int argc, char** argv) {
 
   // quad2.add_script(new CatchBall);
 
-  quad2.add_script(new Drift);
+  // quad2.add_script(new Drift);
+
+  quad2.add_script(new MovingLand);
 
   ROS_INFO("Starting...");
 

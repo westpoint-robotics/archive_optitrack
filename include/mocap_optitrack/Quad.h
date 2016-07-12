@@ -65,6 +65,9 @@ struct QuadData {
   // Vector of other quads in parent Quad's Formation. Only has public access to
   // other quads.
   std::vector<const Quad*> other_quads;
+
+  // Pointer to this quad with public access
+  Quad* this_quad;
 };
 
 

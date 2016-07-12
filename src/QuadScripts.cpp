@@ -338,6 +338,77 @@ void Drift::publish_topic() {
   pub.publish(locked_pose);
 }
 
+
+// MOVINGLAND - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+MovingLand::MovingLand() : set_z_above(0.5), disarmed(false) {}
+
+void MovingLand::init() {
+  dest_pose = data->plat_pose;
+  pub = data->node.advertise<geometry_msgs::PoseStamped>
+                            ("mavros/setpoint_position/local",
+                             FRAMES_PER_SEC);
+}
+
+bool MovingLand::completed() const {
+  return !data->state.armed;
+}
+
+void MovingLand::publish_topic() {
+  ROS_INFO_ONCE("Starting MovingLand");
+  // Aim for pose above platform
+  dest_pose = data->plat_pose;
+  dest_pose.pose.position.z = data->plat_pose.pose.position.z + set_z_above;
+
+  // Align orientation of quad and platform (depends on arbitrary defn)
+  dest_pose.pose.orientation.z = -data->plat_pose.pose.orientation.w;
+  dest_pose.pose.orientation.w = -data->plat_pose.pose.orientation.z;
+
+  // Set to move at same vel as plat
+  double vx = data->plat_vel.twist.linear.x;
+  double vy = data->plat_vel.twist.linear.y;
+  dest_pose.pose.position.x += 2 * vx + .03;
+  dest_pose.pose.position.y += 2 * vy + .01;
+
+  // Overcompensate to catch up to plat
+  if (std::sqrt(vx*vx + vy*vy) > 0.10) {
+    ROS_INFO_ONCE("Overcompensating");
+    double dx = data->plat_pose.pose.position.x - data->local_pose.pose.position.x;
+    double dy = data->plat_pose.pose.position.y - data->local_pose.pose.position.y;
+    dest_pose.pose.position.x += dx;
+    dest_pose.pose.position.y += dy;
+  }
+
+  if (abovePlatform()) {
+    // Disarm if close enough
+    double dz = data->local_pose.pose.position.z -
+                data->plat_pose.pose.position.z;
+    if (!disarmed && dz < 0.12) {
+      data->this_quad->disarm();
+      ROS_INFO("Quad disarmed.");
+      disarmed = true;
+    }
+
+    // Descend if above platform
+    double fall_dist = -0.10;
+    if ((dest_pose.pose.position.z -
+         data->plat_pose.pose.position.z) > fall_dist) {
+      set_z_above -= (0.4) / FRAMES_PER_SEC;
+    }
+    else {
+      set_z_above = data->plat_pose.pose.position.z + fall_dist;
+    }
+  }
+
+  // Publish
+  dest_pose.header.stamp = ros::Time::now();
+  pub.publish(dest_pose);
+}
+
+bool MovingLand::abovePlatform() const {
+  return pose_xy_check(data->plat_pose.pose, data->local_pose.pose, 0.12);
+}
+
 // HELPER FUNCTIONS - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool pose_dist_check(geometry_msgs::Pose pose1,

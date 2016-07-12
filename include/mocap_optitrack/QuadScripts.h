@@ -165,6 +165,25 @@ protected:
   bool locked;
 };
 
+class MovingLand : public QuadScript {
+public:
+  MovingLand();
+
+  virtual void init();
+  virtual bool completed() const;
+  virtual void publish_topic();
+protected:
+  geometry_msgs::PoseStamped dest_pose;
+
+  // How high above the platform the quad will set position to
+  double set_z_above;
+
+  bool disarmed;
+
+  // Whether or not the quad is above the platform
+  bool abovePlatform() const;
+};
+
 // Helper functions - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool pose_dist_check(geometry_msgs::Pose pose1,

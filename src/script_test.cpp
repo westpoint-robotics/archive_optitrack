@@ -22,8 +22,8 @@ int main(int argc, char** argv) {
   // FollowAbove follow("/object_pose", 1);
   // follow.startAfter(&takeoff);
 
-  // FollowLand land("/object_pose");
-  // land.startAfter(&controlled);
+  FollowLand land("/object_pose");
+  land.startAfter(&controlled);
   //
   ROS_INFO("Executing...");
 

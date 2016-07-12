@@ -3,6 +3,8 @@ Instructions for configuring a Natural Point Optitrack motion capture system in 
 
 It may be possible to simply clone this repository, but configurations are not guaranteed to work with your setup, so you should still follow the guide below and configure everything to work with your setup.
 
+View [these videos](https://drive.google.com/folderview?id=0Bwo0RaDbV3_oT0FuN3pRbEVLMms&usp=sharing) for examples done with this setup.
+
 ## Overview
 The goal is to track multiple quadcopters using the OptiTrack motion capture system, then stream that data through a base station (your computer) and to the quadcopters with an onboard cpu running mavros, giving them a local pose estimate and allowing position setting, offboard control, etc. Instructions are compiled from a number of sources along with experimentation.
 
@@ -110,6 +112,7 @@ The ROS network can also be set up using an ad hoc network to avoid latency or o
 
    ---
 
+## Script Examples
 An example of code used to write and run scripts for multiple quads is included in include/mocap_optitrack under Quad.h and QuadScripts.h (with corresponding source code in src/Quad.cpp and src/QuadScripts.cpp, with a runfile in src/multiquad_script_example.cpp).
 
 Each Quad object corresponds to an individual quadcopter, identified by namespace. It holds data about the quad in its data struct. View Quad.h for specific method information and src/Quad.cpp for implementation. Each Quad object holds a script of (pointers to) QuadScript objects, which it runs in sequence. It also has a list of other quads that it knows about (can access position, velocity, etc).

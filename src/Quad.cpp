@@ -8,6 +8,7 @@
 Quad::Quad(std::string ns_in) {
   quad_type = REAL_QUAD;
   data.node = ros::NodeHandle(ns_in);
+  data.this_quad = this;
   // Initialize vel queues to correct size, data cycled through in pose subs
   geometry_msgs::PoseStamped init_pose;
   for (int i = 0; i < FRAMES_PER_SEC / VEL_T_DENOM; ++i) {
@@ -194,7 +195,7 @@ void Quad::set_plat_vel() {
 void Quad::set_ball_vel() {
   data.ball_vel.header = past_ball_pose.back().header;
   double dx = past_ball_pose.back().pose.position.x -
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        past_ball_pose.front().pose.position.x;
+              past_ball_pose.front().pose.position.x;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          past_ball_pose.front().pose.position.x;
   double dy = past_ball_pose.back().pose.position.y -
               past_ball_pose.front().pose.position.y;
   double dz = past_ball_pose.back().pose.position.z -
