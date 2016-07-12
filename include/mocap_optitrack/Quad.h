@@ -36,8 +36,9 @@ bool pose_dist_check(geometry_msgs::Pose pose1,
 struct QuadData;
 class Quad;
 
-// QuadData - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// ========
+// QuadData
+// ========
 // A data struct belonging to a Quad that holds all data that needs to be sent
 // to QuadScripts, as well as the node to publish with.
 struct QuadData {
@@ -70,9 +71,9 @@ struct QuadData {
   Quad* this_quad;
 };
 
-
-// Quad class - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// ====
+// QUAD
+// ====
 class Quad {
 public:
   Quad() {}
@@ -134,6 +135,7 @@ protected:
   ros::Subscriber ball_pose_sub;
   ros::Subscriber local_vel_sub;
 
+  // Callbacks for subscribers
   void state_callback(const mavros_msgs::State::ConstPtr& msg);
   void local_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg);
   virtual void wand_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg);
@@ -142,22 +144,23 @@ protected:
   void local_vel_callback(const geometry_msgs::TwistStamped::ConstPtr& msg);
 
   // Velocity functions to calculate and fill out quad data fields
+  // Called in their respective position callback function
   void set_wand_vel();
   void set_plat_vel();
   void set_ball_vel();
 
-  // Queues to calculate velocity
+  // Queues used to store past poses and calculate velocity
   std::queue<geometry_msgs::PoseStamped> past_wand_pose;
   std::queue<geometry_msgs::PoseStamped> past_plat_pose;
   std::queue<geometry_msgs::PoseStamped> past_ball_pose;
 
-  // Checks for wand (or other) to trigger disarm
+  // Checks for wand downward swipe to trigger disarm
   void check_for_disarm_cmd();
 };
 
-// FAKEQUAD - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
+// ========
+// FAKEQUAD
+// ========
 class FakeQuad : public Quad {
 public:
   FakeQuad(int quad_type_in);
@@ -175,21 +178,23 @@ protected:
   virtual void run();
 };
 
-// FORMATION - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Formations hold Quads and make formation movements/control easier.
+// =========
+// FORMATION
+// =========
+
+// Formations hold Quads and make group movements/control easier.
 class Formation {
 public:
   Formation();
 
-  // Runs one frame of each quad's script
+  // Runs one frame of each quad in this formation's script
   void run();
 
   // Adds quad to quad_list and links quad to all in formation and vice versa
   void add_quad(Quad& quad);
 
   // Adds script of type T to all quads in this formation.
-  // Constructs a new script for each quad.
+  // Constructs a new script for each quad. Ownership is given to the quad.
   template <class T>
   void add_script(T* script) {
     for (int i = 0; i < quad_list.size(); ++i) {
@@ -204,15 +209,21 @@ public:
   void print_count();
 
 private:
-  // Checks if any quads will collide and disarms both
+  // Checks if any quads in this formation are near each other or near a wall,
+  // and disarms any that are
   void check_for_collisions();
+
+  // Makes sure quads aren't disarmed on startup before positions are set
   bool initialized;
 
+  // List of all the quads in this formation
   std::vector<Quad*> quad_list;
 };
 
-// HELPER FUNCTIONS - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// ================
+// HELPER FUNCTIONS
+// ================
+
 bool insideBoundaries(geometry_msgs::Pose pose);
 
 #endif

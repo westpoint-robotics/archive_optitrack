@@ -8,7 +8,7 @@ int main(int argc, char** argv) {
 
   // Create quads
   FakeQuad fake(CLOCKWISE_CIRCLE);
-  Quad quad1("quad01");
+  // Quad quad1("quad01");
   Quad quad2("quad02");
 
   // Group quads together
@@ -22,8 +22,8 @@ int main(int argc, char** argv) {
   // quad1.add_script(new SetPose(-1, -0.7, 0.5,   0, 0, 0, -1));
   // quad1.back()->set_needsWandCheck(true);
 
-  quad2.add_script(new SetPose(-1.5, 0, 0.5,   0, 0, 0, -1));
-  quad2.back()->set_needsWandCheck(true);
+  // quad2.add_script(new SetPose(-1.5, 0, 0.5,   0, 0, 0, -1));
+  // quad2.back()->set_needsWandCheck(true);
   //
   // quad1.add_script(new FollowOffset(0.6, 0, 0, 0));
   // quad2.add_script(new FollowOffset(-0.6, 0, 0, 0));

@@ -17,7 +17,7 @@ Quad::Quad(std::string ns_in) {
     past_ball_pose.push(init_pose);
   }
 
-  // Init subs
+  // Initialize subs
   state_sub = data.node.subscribe("mavros/state",
                                   FRAMES_PER_SEC,
                                   &Quad::state_callback,
@@ -43,13 +43,14 @@ Quad::Quad(std::string ns_in) {
                                       &Quad::local_vel_callback,
                                       this);
 
-  // Init disarming client
+  // Initialize disarming client
   disarm_client = data.node.serviceClient<mavros_msgs::CommandBool>
                                          ("mavros/cmd/arming");
 }
 
+// Mostly not called, termination done with ^C...
 Quad::~Quad() {
-  ROS_INFO_ONCE("Cleaning up remaining quad memory");
+  ROS_INFO_ONCE("Cleaning up remaining quadscripts memory");
   while (!script_queue.empty()) {
     delete script_queue.front();
     script_queue.pop();
@@ -59,14 +60,17 @@ Quad::~Quad() {
 void Quad::run() {
   check_for_disarm_cmd();
 
+  // Run this quad's active script
   if (!script_queue.empty()) {
     int size = script_queue.size();
-    // Delete script when moving to next one
+
+    // Delete script and move to next one if completed
     if (script_queue.front()->completed() && script_queue.size() > 1) {
       ROS_INFO("Script completed, starting next one.");
       delete script_queue.front();
       script_queue.pop();
     }
+
     script_queue.front()->publish_topic();
     ros::spinOnce();
   }
@@ -287,6 +291,7 @@ void FakeQuad::ball_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& ms
 void FakeQuad::run() {
   switch (quad_type) {
 
+    // Project position out past where the wand is pointing
     case WAND_PROJECTION: {
       tf::Quaternion q;
       tf::quaternionMsgToTF(data.wand_pose.pose.orientation, q);
@@ -305,6 +310,7 @@ void FakeQuad::run() {
       break;
     }
 
+    // Move according to wand orientation
     case WAND_MOVABLE: {
       if (data.wand_pose.pose.position.z > 0.8) {
         if (std::abs(data.wand_pose.pose.orientation.y) < 0.1 &&
@@ -321,6 +327,8 @@ void FakeQuad::run() {
       break;
     }
 
+    // Move in a constant clockwise circle
+    // (TODO this currently goes counterclockwise...)
     case CLOCKWISE_CIRCLE: {
       if (!activated) {
         bool rot_check = std::abs(data.wand_pose.pose.orientation.y) < 0.1;

@@ -121,3 +121,5 @@ Each QuadScript object gives instructions to the Quad it belongs to when it is r
   If writing new scripts, look at SetPose for a simple example on infrastructure. Each new script must implement the pure virtual functions init(), completed(), and publish_topic(). Descriptions of these functions are in QuadScripts.h
 
 Quads can optionally be grouped into Formation objects, allowing easier control for formation movement and control. They contain a vector of Quad objects, and can add scripts to groups of Quads at once (although the quads still run them independently). It also makes lets every quad in the formation know where every other quad in the formation is, and implements boundary checking between the quads, disarming them if they come too close to each other.
+
+This is just an example of a structure that uses setpoint positions; your own can be written and can also use setpoint velocity, acceleration, attitude, etc.

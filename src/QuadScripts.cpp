@@ -367,16 +367,17 @@ void MovingLand::publish_topic() {
   // Set to move at same vel as plat
   double vx = data->plat_vel.twist.linear.x;
   double vy = data->plat_vel.twist.linear.y;
-  dest_pose.pose.position.x += 2 * vx + .03;
-  dest_pose.pose.position.y += 2 * vy + .01;
+  dest_pose.pose.position.x += 2.2 * vx;
+  dest_pose.pose.position.y += 2.2 * vy;
 
   // Overcompensate to catch up to plat
-  if (std::sqrt(vx*vx + vy*vy) > 0.10) {
+  // if (std::sqrt(vx*vx + vy*vy) > 0.10) {
+  if (true) {
     ROS_INFO_ONCE("Overcompensating");
     double dx = data->plat_pose.pose.position.x - data->local_pose.pose.position.x;
     double dy = data->plat_pose.pose.position.y - data->local_pose.pose.position.y;
-    dest_pose.pose.position.x += dx;
-    dest_pose.pose.position.y += dy;
+    dest_pose.pose.position.x += 1.3 * dx;
+    dest_pose.pose.position.y += 1.3 * dy;
   }
 
   if (abovePlatform()) {
@@ -393,7 +394,12 @@ void MovingLand::publish_topic() {
     double fall_dist = -0.10;
     if ((dest_pose.pose.position.z -
          data->plat_pose.pose.position.z) > fall_dist) {
-      set_z_above -= (0.4) / FRAMES_PER_SEC;
+
+      // TODO THIS CHECK FOR DEMO ONLY
+      // Only descend if platform moving
+      if (std::sqrt(vx*vx + vy*vy) > 0.10) {
+        set_z_above -= (0.5) / FRAMES_PER_SEC;
+      }
     }
     else {
       set_z_above = data->plat_pose.pose.position.z + fall_dist;
