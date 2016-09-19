@@ -1,0 +1,55 @@
+<launch>
+  <arg name="ns1" default="quad01" />
+  <arg name="ns2" default="quad02" />
+
+    <!-- Pass in mocap_config_file:=/path/to/config.yaml to change options. -->
+    <arg name="mocap_config_file"
+         default="$(find mocap_optitrack)/config/vision_pose.yaml" />
+
+    <node pkg="mocap_optitrack"
+          type="mocap_node"
+          name="mocap_node"
+          respawn="false"
+          launch-prefix=""
+          required="true">
+      <rosparam file="$(arg mocap_config_file)" command="load" />
+    </node>
+
+      <!-- Object (platform) pose -->
+      <node pkg="mocap_optitrack" type="correct_vis_coords"
+        name="correct_object_coords"
+        args="/uncorrected_pose9 object_pose" />
+
+      <!-- Wand pose -->
+      <node pkg="mocap_optitrack" type="correct_vis_coords"
+        name="correct_wand_coords"
+        args="/uncorrected_pose1 wand_pose" />
+
+      <!-- Ball pose -->
+      <node pkg="mocap_optitrack" type="correct_vis_coords"
+        name="correct_ball_coords"
+        args="/uncorrected_pose8 ball_pose" />
+
+      <!-- Quad1 pose -->
+      <!-- <node pkg="mocap_optitrack" type="correct_vis_coords"
+        name="correct_quad_coords" ns="$(arg ns1)"
+        args="/uncorrected_pose3 mavros/vision_pose/pose" /> -->
+
+      <!-- Quad2 pose -->
+      <!-- <node pkg="mocap_optitrack" type="correct_vis_coords"
+        name="correct_quad_coords" ns="$(arg ns2)"
+        args="/uncorrected_pose4 mavros/vision_pose/pose" /> -->
+
+        <!-- Quad1 pose test versn -->
+        <node pkg="mocap_optitrack" type="correct_vis_coords_test"
+          name="correct_quad_coords_test" ns="$(arg ns1)"
+          args="/uncorrected_pose3 mavros/vision_pose/pose" />
+
+        <!-- Quad2 pose test versn -->
+        <node pkg="mocap_optitrack" type="correct_vis_coords_test"
+          name="correct_quad_coords_test" ns="$(arg ns2)"
+          args="/uncorrected_pose4 mavros/vision_pose/pose" />
+
+        <!-- <node pkg="mocap_optitrack" type="boundary_check"
+          name="boundary_check" /> -->
+</launch>

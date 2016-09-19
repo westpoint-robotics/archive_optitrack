@@ -1,0 +1,37 @@
+#
+# Definition of all trackable objects
+# Identifier corresponds to Trackable ID set in Tracking Tools
+#
+rigid_bodies:
+    # Wand pose
+    '1':
+        pose: /uncorrected_pose1
+        parent_frame_id: world
+        use_new_coordinates: false
+
+    # Quad1 pose
+    '3':
+        pose: /uncorrected_pose3
+        parent_frame_id: world
+        use_new_coordinates: false
+
+    # Quad 2 pose
+    '4':
+        pose: /uncorrected_pose4
+        parent_frame_id: world
+        use_new_coordinates: false
+
+    # Ball pose
+    '8':
+        pose: /uncorrected_pose8
+        parent_frame_id: world
+        use_new_coordinates: false
+
+    # Platform pose
+    '9':
+        pose: /uncorrected_pose9
+        parent_frame_id: world
+        use_new_coordinates: false
+
+optitrack_config:
+        multicast_address: 224.0.0.1
