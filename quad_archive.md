@@ -1,3 +1,6 @@
+Instructions for configuring a Natural Point Optitrack motion capture system in ROS. These instructions are based on this wiki: http://wiki.ros.org/mocap_optitrack. 
+This ROS package's instructions are dated.
+View [these videos](https://drive.google.com/folderview?id=0Bwo0RaDbV3_oT0FuN3pRbEVLMms&usp=sharing) for examples done with this setup.
 ## Base Station Setup
 1. Read the mocap\_optitrack [wiki](http://wiki.ros.org/mocap_optitrack) for basic overview. Note that instructions are dated.
 2. Clone this branch to your catkin workspace src folder: https://github.com/ros-drivers/mocap_optitrack/tree/new-and-old-support
