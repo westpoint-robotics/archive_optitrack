@@ -1,3 +1,6 @@
+# archive_optitrack
+----------
+---------
 # usma_optitrack
 ## Overview
 Instructions for configuring a Natural Point Optitrack motion capture system and VRPN client in order to stream pose data to ROS.
